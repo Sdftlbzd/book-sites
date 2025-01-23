@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken'
 import "dotenv/config";
 import { Author } from '../models/Author.model';
 import { NextFunction, Request, Response } from 'express';
+import { appConfig } from '../../consts';
 
 // export const useAuth = async (req:Request, res:Response, next:NextFunction): Promise<void> => {
 //   if (
@@ -58,8 +59,8 @@ export const useAuth = async (req: Request, res: Response, next: NextFunction): 
 
   try {
     // 3. Tokeni yoxlayırıq
-    const jwtSecret = "secret"; 
-    const jwtResult = jwt.verify(access_token, jwtSecret) as jwt.JwtPayload;
+   
+    const jwtResult = jwt.verify(access_token, String(appConfig.JWT_SECRET)) as jwt.JwtPayload;
 
     const author = await Author.findOne({
       where: { id: Number(jwtResult.sub) }, // `sub` token payload-dan gəlir

@@ -36,7 +36,7 @@ import { Author } from "./Author.model";
     @DeleteDateColumn({ type: "datetime" })
     deleted_at: Date;
 
-    @ManyToOne(()=>Author,(author)=>author.books)
+    @ManyToOne(()=>Author,(author)=>author.books,{cascade:true})
     author:Author
   }
   

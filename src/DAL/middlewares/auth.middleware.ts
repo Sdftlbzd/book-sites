@@ -70,7 +70,7 @@ export const useAuth = async (req: Request, res: Response, next: NextFunction): 
     }
 
     (req as any).author = author; // Custom məlumat əlavə etmək üçün req obyektini cast edirik
-
+//req.author = author
     next();
   } catch (error) {
     console.error("JWT verification error:", error);

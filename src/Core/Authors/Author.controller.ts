@@ -4,6 +4,7 @@ import { validate } from "class-validator";
 import { CreateAuthorDTO } from "./Author.dto";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { appConfig } from "../../consts";
 
 const Register = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -68,9 +69,9 @@ console.log(author.id)
   const jwt_payload = {
     sub: author.id,
   };
-
+const jwtSecret = String(appConfig.JWT_SECRET)
   // 4. create jwt_token
-  const new_token = jwt.sign(jwt_payload, 'secret', {
+  const new_token = jwt.sign(jwt_payload, jwtSecret, {
     algorithm: "HS256",
     expiresIn: "1d",
   });

@@ -3,34 +3,60 @@ import { NextFunction, Request, Response } from "express";
 import moment from "moment";
 import { Book } from "../../DAL/models/Book.model";
 import { CreateBookDTO, UpdateBookDTO } from "./Book.dto";
+import { In } from "typeorm";
+import { ERoleType, User } from "../../DAL/models/User.model";
+import { AuthRequest } from "../../types";
 
-const Create = async (req: Request, res: Response, next: NextFunction) => {
+const Create = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const author = (req as any).author;
-    const { title, description } = req.body;
+    const user = req.user;
+    const { title, description, authors, payMount, currency } = req.body;
 
-    const authorId = author.id;
+    // 🔹 Müəllifləri ID-lər əsasında tapırıq
+    const author_list = await User.find({
+      where: {
+        id: In(authors),
+      },
+    });
+
+    if (author_list.length === 0) return next(res.json("Muellif yoxdur"));
+    
+    console.log(author_list);
 
     const dto = new CreateBookDTO();
+
     dto.title = title;
     dto.description = description;
+    dto.authors = author_list;
+    dto.payMount = payMount;
+    dto.currency = currency;
 
     const errors = await validate(dto);
 
     if (errors.length > 0) {
-      return next(errors);
+      return next(
+        res.status(400).json({
+          message: "Validation failed",
+          errors: errors.reduce((response: any, item: any) => {
+            response[item.property] = Object.keys(item.constraints);
+            return response;
+          }, {}),
+        })
+      );
     }
 
+    // 🔹 Kitab yaradıb müəllifləri əlavə edirik
     const book = Book.create({
-      author: author,
       title,
       description,
+      authors: author_list,  // ✅ Düzgün obyekt ötürülməsi
+      payMount,
+      currency,
     });
 
     const savedBook = await book.save();
 
-    //res.status(201).json(savedBook);
-    res.status(201).json({ book: savedBook, author: savedBook.author });
+    res.status(201).json(savedBook);
   } catch (error) {
     res.status(500).json({
       message: "An error occurred while creating the book",
@@ -43,7 +69,7 @@ const BookList = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const list = await Book.find({
       withDeleted: true,
-      relations: ["author"],
+      // relations: ["user"],
     });
 
     res.json(list);
@@ -55,31 +81,59 @@ const BookList = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const BookEdit = async (req: Request, res: Response, next: NextFunction) => {
+const BookEdit = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const user = req.user;
+
+    if(!user) {res.json("User not found") 
+      return}
     const id = Number(req.params.id);
+
     if (!id) return next(new Error("Id is required"));
 
-    const { title, description } = req.body;
+    const { title, description, payMount, currency } = req.body;
 
     const book = await Book.findOne({ where: { id }, relations: ["user"] });
 
     if (!book) return next(new Error("Book not found"));
 
+    if (user.role === ERoleType.USER)
+      return next(res.json("Sizin update icazeniz yoxdur"));
+
+    if (user.role === ERoleType.AUTHOR) {
+    const books = Book.find({
+        where:{authors:user},
+    })
+    return next(res.json(books))
+    }
+
     const dto = new UpdateBookDTO();
     dto.title = title;
     dto.description = description;
+    dto.payMount = payMount;
+    dto.currency = currency;
 
     const errors = await validate(dto);
 
-    if (errors.length > 0) return next(errors);
+    if (errors.length > 0) return next(
+      res.status(400).json({
+        message: "Validation failed",
+        errors: errors.reduce((response: any, item: any) => {
+          response[item.property] = Object.keys(item.constraints);
+          return response;
+        }, {}),
+      }));
 
-    const update = book.title !== title || book.description !== description;
+    const update =
+      title !== (book.title && undefined) ||
+      description !== (book.description && undefined) ||
+      payMount !== (book.payMount && undefined) ||
+      currency !== (book.currency && undefined);
 
     if (!update) {
       return next(
         res.json({
-          message: "No changes detected, contact not updated.",
+          message: "No changes detected, book not updated.",
           data: book,
         })
       );
@@ -88,11 +142,21 @@ const BookEdit = async (req: Request, res: Response, next: NextFunction) => {
     await Book.update(id, {
       title,
       description,
+      payMount,
+      currency,
     });
 
     const updatedData = await Book.findOne({
       where: { id },
-      select: ["id", "title", "created_at"],
+      select: [
+        "id",
+        "title",
+        "description",
+        "authors",
+        "payMount",
+        "currency",
+        "updated_at",
+      ],
     });
 
     res.json({

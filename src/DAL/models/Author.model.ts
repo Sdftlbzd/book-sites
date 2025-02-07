@@ -4,6 +4,8 @@ import {
     CreateDateColumn,
     DeleteDateColumn,
     Entity,
+    JoinTable,
+    ManyToMany,
     OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
@@ -36,7 +38,12 @@ import { Book } from "./Book.model";
     @DeleteDateColumn({ type: "datetime" })
     deleted_at: Date;
 
-    @OneToMany(() => Book, (book) => book.author, { onDelete: "CASCADE" })
-    books: Book[]
+    // @OneToMany(() => Book, (book) => book.author, { onDelete: "CASCADE" })
+    // books: Book[]
+
+
+
+  //   @ManyToMany(() => Book, (book) => book.authors)
+  // books: Book[]; // Kitabların siyahısı
   }
   

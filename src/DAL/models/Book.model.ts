@@ -4,11 +4,13 @@ import {
     CreateDateColumn,
     DeleteDateColumn,
     Entity,
+    JoinTable,
+    ManyToMany,
     ManyToOne,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
   } from "typeorm";
-import { Author } from "./Author.model";
+import { User } from "./User.model";
   
   export enum EInquiryType {
     PARTNERSHIP = "PARTNERSHIP",
@@ -26,6 +28,15 @@ import { Author } from "./Author.model";
 
     @Column({ type: "varchar", length: 200 })
     description: string;
+
+    @Column({ type: "int"})
+    payMount: number;
+
+    @Column({ type: "varchar", length: 50 })
+    currency: string;
+
+    @Column({ type: "int"})
+    saleCount: number;
   
     @CreateDateColumn({ type: "datetime" })
     created_at: Date;
@@ -36,7 +47,31 @@ import { Author } from "./Author.model";
     @DeleteDateColumn({ type: "datetime" })
     deleted_at: Date;
 
-    @ManyToOne(()=>Author,(author)=>author.books,{cascade:true})
-    author:Author
+    // @ManyToOne(()=>Author,(author)=>author.books,{cascade:true})
+    // author:Author
+
+        // @ManyToMany(() => Author)
+        // @JoinTable()
+        // books: Book[]
+
+
+  // @ManyToMany(() => Author, (author) => author.books, { cascade: true })
+  // @JoinTable()
+  // authors: Author[]; // Müəlliflərin siyahısı
+
+  /*@ManyToMany(() => User, (author) => author.books, { cascade: true })
+  @JoinTable({name:"BookAuthor"})
+  authors: User[]; // Müəlliflərin siyahısı
+
+  @ManyToMany(() => User, (user) => user.receivedBook, { cascade: true })
+  @JoinTable({name:"BookUser"})
+  users: User[]; */
+  // ✍️ Kitabı yaradan müəlliflər (Authors üçün ManyToMany)
+  @ManyToMany(() => User, (user) => user.createdBooks)
+  authors: User[];
+
+  // 🛒 Kitabı satın alan istifadəçilər (Bütün istifadəçilər üçün ManyToMany)
+  @ManyToMany(() => User, (user) => user.boughtBooks)
+  buyers: User[];
   }
   

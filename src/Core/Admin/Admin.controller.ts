@@ -1,23 +1,27 @@
 import Joi from "joi";
 import bcrypt from "bcrypt";
 import { NextFunction, Request, Response } from "express";
-import { appConfig, userRoleList } from "../../consts";
-import { User } from "../../DAL/models/User.model";
+import { appConfig } from "../../consts";
+import { ERoleType, User } from "../../DAL/models/User.model";
 import { validate } from "class-validator";
 import { transporter } from "../../helpers";
 import { CreateUserByAdminDTO, EditUserByAdminDTO } from "./Admin.dto";
+import { In } from "typeorm";
 
 const userCreate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, surname, email, password, role, status } = req.body;
 
-    if (role && !userRoleList.includes(role)) {
-        const error = new Error(`Invalid role! Allowed roles: ${userRoleList}`);
-        throw error;
-      }
+    if (role && !(role in ERoleType)) {
+      const error = new Error(`Invalid role! Allowed roles: ${ERoleType}`);
+      throw error;
+    }
 
     const user = await User.findOne({ where: { email: email } });
-    if (user) return next(res.json("Bu emaile uygun user artiq movcuddur"));
+    if (user) {
+      res.json("Bu emaile uygun user artiq movcuddur");
+      return;
+    }
 
     const newPassword = await bcrypt.hash(password, 10);
 
@@ -32,15 +36,14 @@ const userCreate = async (req: Request, res: Response, next: NextFunction) => {
     const errors = await validate(dto);
 
     if (errors.length > 0) {
-      return next(
-        res.status(400).json({
-          message: "Validation failed",
-          errors: errors.reduce((response: any, item: any) => {
-            response[item.property] = Object.keys(item.constraints);
-            return response;
-          }, {}),
-        })
-      );
+      res.status(400).json({
+        message: "Validation failed",
+        errors: errors.reduce((response: any, item: any) => {
+          response[item.property] = Object.keys(item.constraints);
+          return response;
+        }, {}),
+      });
+      return;
     }
 
     const newUser = User.create({
@@ -69,7 +72,8 @@ const userCreate = async (req: Request, res: Response, next: NextFunction) => {
 
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
-        return next(("Error sending email"))
+        res.json("Error sending email");
+        return;
       } else {
         console.log("Email sent: ", info);
       }
@@ -91,7 +95,7 @@ const userCreate = async (req: Request, res: Response, next: NextFunction) => {
     res.status(201).json({ data });
   } catch (error) {
     res.status(500).json({
-      message: "An error occurred while creating the user",
+      message: "Something went wrong",
       error: error instanceof Error ? error.message : error,
     });
   }
@@ -103,31 +107,39 @@ const userEdit = async (req: Request, res: Response, next: NextFunction) => {
     const id = Number(req.params.id);
 
     const user = await User.findOne({
-        where:{ id },
-        select: [
-            "id",
-            "name",
-            "surname",
-            "email",
-            "role",
-            "status",
-            "created_at",
-          ],
-    })
+      where: { id },
+      select: [
+        "id",
+        "name",
+        "surname",
+        "email",
+        "role",
+        "status",
+        "created_at",
+      ],
+    });
 
-    if(!user) return next(res.json("Bele bir user movcud deyil"))
+    if (!user) {
+      res.json("Bele bir user movcud deyil");
+      return;
+    }
 
-    if (role && !userRoleList.includes(role)) {
-      const error = new Error(`Invalid role! Allowed roles: ${userRoleList}`);
+    if (role && !(role in ERoleType)) {
+      const error = new Error(`Invalid role! Allowed roles: ${ERoleType}`);
       throw error;
     }
 
-    if(!status && !role){
-       return next(res.json("Hech bir deyishiklik yoxdur"))
+    if (!status && !role) {
+      res.json("Hech bir deyishiklik yoxdur");
+      return;
     }
 
-    if((user.status === (status|| undefined))||(user.role === (role|| undefined))){
-        return next(res.json("Hech bir deyishiklik yoxdur"))
+    if (
+      user.status === (status || undefined) ||
+      user.role === (role || undefined)
+    ) {
+      res.json("Hech bir deyishiklik yoxdur");
+      return;
     }
 
     const dto = new EditUserByAdminDTO();
@@ -137,15 +149,14 @@ const userEdit = async (req: Request, res: Response, next: NextFunction) => {
     const errors = await validate(dto);
 
     if (errors.length > 0) {
-      return next(
-        res.status(400).json({
-          message: "Validation failed",
-          errors: errors.reduce((response: any, item: any) => {
-            response[item.property] = Object.keys(item.constraints);
-            return response;
-          }, {}),
-        })
-      );
+      res.status(400).json({
+        message: "Validation failed",
+        errors: errors.reduce((response: any, item: any) => {
+          response[item.property] = Object.keys(item.constraints);
+          return response;
+        }, {}),
+      });
+      return;
     }
     await User.update(id, {
       role,
@@ -162,7 +173,7 @@ const userEdit = async (req: Request, res: Response, next: NextFunction) => {
         "status",
         "role",
         "created_at",
-        "updated_at"
+        "updated_at",
       ],
     });
 
@@ -192,65 +203,114 @@ const userEdit = async (req: Request, res: Response, next: NextFunction) => {
     res.status(201).json({ updatedData });
   } catch (error) {
     res.status(500).json({
-      message: "An error occurred while creating the user",
+      message: "Something went wrong",
       error: error instanceof Error ? error.message : error,
     });
   }
 };
 
-// const userDelete = async (req, res) => {
-//   try {
-//     await User.deleteOne({ _id: req.params.id });
+const userDelete = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const deleteUser = await User.findOne({
+      where: { id: Number(req.params.id) },
+    });
 
-//     return res.json({ message: "User uğurla silindi!" });
-//   } catch (err) {
-//     return res.status(500).json({ message: error[500], error: err.message });
-//   }
-// };
+    if (!deleteUser) {
+      res.json("Bele bir user yoxdur");
+      return;
+    }
 
-// const adminList = async (req, res) => {
-//   try {
-//     const admins = await User.find({ role: "admin" });
+    await User.softRemove(deleteUser);
 
-//     if (!admins.length) {
-//       return res.status(404).json({
-//         message: "No admins found.",
-//       });
-//     }
+    res.json({ message: "User uğurla silindi!" });
+  } catch (error) {
+    res.status(500).json({
+      message: "Something went wrong",
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+};
 
-//     const page = req.query.page || 1;
-//     const limit = req.query.perpage || 5;
+const adminList = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.perpage) || 5;
 
-//     const before_page = (page - 1) * limit;
-//     const list = await User.find({ role: "admin" })
-//       .skip(before_page)
-//       .limit(limit);
+    const before_page = (page - 1) * limit;
+    const [list, total] = await User.findAndCount({
+      where:{ role: ERoleType.ADMIN },
+      skip: before_page,
+      take: limit,
+    });
 
-//     res.status(200).json({
-//       data: list,
-//       pagination: {
-//         admins,
-//         currentpage: page,
-//         messagesCount: list.length,
-//         allPages: Math.ceil(admins / limit),
-//       },
-//     });
-//   } catch (err) {
-//     return res.status(500).json({
-//       message: error[500],
-//       error: err.message,
-//     });
-//   }
-// };
+if (list.length === 0) {
+  res.status(404).json({
+    message: "No admins found.",
+  });
+  return;
+}
+    res.status(200).json({
+      data: list,
+      pagination: {
+        admins: total,
+        currentPage: page,
+        messagesCount: list.length,
+        allPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Something went wrong",
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+};
 
-// const RoleList = async (req, res) => {
-//   res.json(userRoleList);
-// };
+const userList = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.perpage) || 5;
+
+    const before_page = (page - 1) * limit;
+    const [ list, total] = await User.findAndCount({
+      where: { role: In([ERoleType.AUTHOR, ERoleType.USER]) },
+      skip: before_page,
+      take: limit,
+    });
+
+    if (list.length === 0) {
+      res.status(404).json({
+        message: "No users found.",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      data: list,
+      pagination: {
+        users: total,
+        currentPage: page,
+        messagesCount: list.length,
+        allPages: Math.ceil(Number(total) / limit),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Something went wrong",
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+};
+
+const RoleList = async (req: Request, res: Response, next: NextFunction) => {
+  res.json(ERoleType);
+};
 
 export const AdminController = () => ({
   userCreate,
-    userEdit,
-  //   userDelete,
-  //   adminList,
-  //   RoleList,
+  userEdit,
+  userDelete,
+  adminList,
+  userList,
+  RoleList,
 });

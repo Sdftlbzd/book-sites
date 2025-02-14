@@ -12,15 +12,17 @@ const Create = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const user = req.user;
     const { title, description, authors, payMount, currency } = req.body;
 
-    // 🔹 Müəllifləri ID-lər əsasında tapırıq
     const author_list = await User.find({
       where: {
         id: In(authors),
       },
     });
 
-    if (author_list.length === 0) return next(res.json("Muellif yoxdur"));
-    
+    if (author_list.length === 0) {
+      res.json("Muellif yoxdur");
+      return;
+    }
+
     console.log(author_list);
 
     const dto = new CreateBookDTO();
@@ -34,22 +36,20 @@ const Create = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const errors = await validate(dto);
 
     if (errors.length > 0) {
-      return next(
-        res.status(400).json({
-          message: "Validation failed",
-          errors: errors.reduce((response: any, item: any) => {
-            response[item.property] = Object.keys(item.constraints);
-            return response;
-          }, {}),
-        })
-      );
+      res.status(400).json({
+        message: "Validation failed",
+        errors: errors.reduce((response: any, item: any) => {
+          response[item.property] = Object.keys(item.constraints);
+          return response;
+        }, {}),
+      });
+      return;
     }
 
-    // 🔹 Kitab yaradıb müəllifləri əlavə edirik
     const book = Book.create({
       title,
       description,
-      authors: author_list,  // ✅ Düzgün obyekt ötürülməsi
+      authors: author_list, 
       payMount,
       currency,
     });
@@ -67,12 +67,36 @@ const Create = async (req: AuthRequest, res: Response, next: NextFunction) => {
 
 const BookList = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const list = await Book.find({
+    const books = await Book.find({
       withDeleted: true,
       // relations: ["user"],
     });
 
-    res.json(list);
+    if (books.length === 0) {
+      res.status(404).json({
+        message: "No books found.",
+      });
+      return;
+    }
+
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.perpage) || 5;
+
+    const before_page = (page - 1) * limit;
+    const [list, total] = await Book.findAndCount({
+      skip: before_page,
+      take: limit,
+    });
+
+    res.status(200).json({
+      data: list,
+      pagination: {
+        books: total,
+        currentPage: page,
+        messagesCount: list.length,
+        allPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     res.status(500).json({
       message: "An error occurred while displaying the book list",
@@ -81,30 +105,56 @@ const BookList = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const BookEdit = async (req: AuthRequest, res: Response, next: NextFunction) => {
+const BookEdit = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const user = req.user;
 
-    if(!user) {res.json("User not found") 
-      return}
+    if (!user) {
+      res.json("User not found");
+      return;
+    }
     const id = Number(req.params.id);
 
-    if (!id) return next(new Error("Id is required"));
+    if (!id) {
+      new Error("Id is required");
+      return;
+    }
 
-    const { title, description, payMount, currency } = req.body;
+    const { title, description, payMount, currency, authors } = req.body;
+  
+    const book = await Book.findOne({ where: { id }, relations: ["authors"] });
 
-    const book = await Book.findOne({ where: { id }, relations: ["user"] });
+    if (!book) {
+      new Error("Book not found");
+      return;
+    }
+    
+    const isAuthor = book.authors.some(author => author.id === user.id);
 
-    if (!book) return next(new Error("Book not found"));
+    if (!(isAuthor || ERoleType.ADMIN)) {
+        res.json("Yalnız kitabın müəllifləri dəyişiklik edə bilər.");
+        return
+    }
 
-    if (user.role === ERoleType.USER)
-      return next(res.json("Sizin update icazeniz yoxdur"));
+    
+    if (!Array.isArray(authors) || authors.length === 0) {
+      res.status(400).json({ message: "Kitab ID-lərini düzgün göndərin" });
+      return;
+    }
 
-    if (user.role === ERoleType.AUTHOR) {
-    const books = Book.find({
-        where:{authors:user},
-    })
-    return next(res.json(books))
+    const author_list = await User.find({
+      where: {
+        id: In(authors),
+      },
+    });
+
+    if (author_list.length === 0) {
+      res.json("Muellif yoxdur");
+      return;
     }
 
     const dto = new UpdateBookDTO();
@@ -112,39 +162,45 @@ const BookEdit = async (req: AuthRequest, res: Response, next: NextFunction) => 
     dto.description = description;
     dto.payMount = payMount;
     dto.currency = currency;
+    dto.authors = author_list;
 
     const errors = await validate(dto);
 
-    if (errors.length > 0) return next(
+    if (errors.length > 0) {
       res.status(400).json({
         message: "Validation failed",
         errors: errors.reduce((response: any, item: any) => {
           response[item.property] = Object.keys(item.constraints);
           return response;
         }, {}),
-      }));
-
-    const update =
-      title !== (book.title && undefined) ||
-      description !== (book.description && undefined) ||
-      payMount !== (book.payMount && undefined) ||
-      currency !== (book.currency && undefined);
-
-    if (!update) {
-      return next(
-        res.json({
-          message: "No changes detected, book not updated.",
-          data: book,
-        })
-      );
+      });
+      return;
     }
 
-    await Book.update(id, {
+      const update =
+  (title &&(title !== book.title)) ||
+  (description && (description !== book.description)) ||
+  (payMount && (payMount !== book.payMount)) ||
+  (author_list && (author_list.some(a => !book.authors.some(b => b.id === a.id)))) ||
+  (currency && (currency !== book.currency));
+
+    if (!update) {
+      res.json({
+        message: "No changes detected, book not updated.",
+      });
+      return;
+    }
+
+
+   await Book.update(id, {
       title,
       description,
       payMount,
       currency,
     });
+
+    book.authors = author_list;
+    await book.save(); 
 
     const updatedData = await Book.findOne({
       where: { id },
@@ -171,14 +227,34 @@ const BookEdit = async (req: AuthRequest, res: Response, next: NextFunction) => 
   }
 };
 
-const BookDelete = async (req: Request, res: Response, next: NextFunction) => {
+const BookDelete = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const user = req.user
+
+if(!user){
+  res.json("User not found!")
+  return
+}
+
     const id = Number(req.params.id);
-    if (!id) return next(new Error("Id is required"));
+    if (!id) {
+      new Error("Id is required");
+      return;
+    }
 
-    const book = await Book.findOne({ where: { id } });
+    const book = await Book.findOne({ where: { id }, relations: ["authors"] });
 
-    if (!book) return next(res.status(404).json("Book not found."));
+    if (!book) {
+      new Error("Book not found");
+      return;
+    }
+    
+    const isAuthor = book.authors.some(author => author.id === user.id);
+
+    if (!(isAuthor || ERoleType.ADMIN)) {
+        res.json("Yalnız kitabın müəllifləri bu kitabi silə bilər.");
+        return
+    }
 
     await Book.softRemove(book);
 
@@ -191,16 +267,23 @@ const BookDelete = async (req: Request, res: Response, next: NextFunction) => {
 
 const GetById = async (req: Request, res: Response, next: NextFunction) => {
   const id = Number(req.params.id);
-  if (!id) return next(new Error("Id is required"));
-
+  if (!id) {
+    new Error("Id is required");
+    return;
+  }
+  
   const data = await Book.findOne({
     where: { id },
-    select: ["id", "title", "created_at"],
+    relations: ["authors","purchases"] ,
+    select: ["id", "title", "created_at","authors"],
   });
-  if (!data) return next(new Error("Book not found"));
+  if (!data) {
+    new Error("Book not found");
+    return;
+  }
 
   res.json({
-    ...data,
+  data,
     created_at: moment(data.created_at).format("YYYY-MM-DD HH:mm:ss"),
   });
 };

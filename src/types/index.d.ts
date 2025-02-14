@@ -1,25 +1,11 @@
-// interface IUser {
-//     id: number;
-//     name: string;
-// }
-
-// declare global {
-//     namespace Express {
-//         interface Request {
-//             user: IUser; 
-//         }
-//     }
-// }
-
 import { Request } from "express";
-import { userRoleList } from "../consts";
+import { User } from "../DAL/models/User.model";
 
-export interface IUser {
+export interface IUser extends User {
     id: number;
     name: string;
-    role:userRoleList
 }
 
 export interface AuthRequest extends Request {
-    user?: IUser;
+    user?: IUser;
 }

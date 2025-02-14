@@ -6,10 +6,12 @@ import {
   Entity,
   JoinTable,
   ManyToMany,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
 import { Book } from "./Book.model";
+import { UserBookPurchase } from "./Order.model";
 
 export enum ERoleType {
   USER = "USER",
@@ -56,6 +58,9 @@ export class User extends BaseEntity {
   @Column({ type: "text"})
   about: string;
 
+  @Column({ type: "int"})
+  bookCount: number;
+
   @CreateDateColumn({ type: "datetime" })
   created_at: Date;
 
@@ -80,7 +85,10 @@ export class User extends BaseEntity {
   createdBooks: Book[];
 
   // 🛒 Satın aldığı kitablar (Bütün istifadəçilər üçün ManyToMany)
-  @ManyToMany(() => Book, (book) => book.buyers)
-  @JoinTable({ name: "user_bought_books" })  // 🔹 Müxtəlif JoinTable adı
-  boughtBooks: Book[];
+  // @ManyToMany(() => Book, (book) => book.buyers)
+  // @JoinTable({ name: "user_bought_books" })  // 🔹 Müxtəlif JoinTable adı
+  // boughtBooks: Book[];
+
+  @OneToMany(() => UserBookPurchase, (purchase) => purchase.user)
+  purchases: UserBookPurchase[];
 }

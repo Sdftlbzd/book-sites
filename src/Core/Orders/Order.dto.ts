@@ -1,4 +1,5 @@
 import {
+    IsDate,
   IsDefined,
   IsEmail,
   IsNumber,
@@ -9,8 +10,21 @@ import {
 } from "class-validator";
 import { Book } from "../../DAL/models/Book.model";
 import { UserBookPurchase } from "../../DAL/models/Order.model";
+import { User } from "../../DAL/models/User.model";
 
-export class CreateUserDTO {
+export class CreateOrderDTO {
+    @IsDefined()
+    user: User;
+
+    @IsDefined()
+    book: Book;
+
+  @IsDate() // Satınalma tarixi
+  purchaseDate: Date;
+}
+
+
+export class CreateAuthorDTO {
   @IsDefined({ message: "Name is required" })
   @IsString()
   @MaxLength(25, { message: "Name is too long" })
@@ -28,10 +42,8 @@ export class CreateUserDTO {
 
   @IsDefined()
   @IsString()
-  @MaxLength(15)
-  @MinLength(8)
   password: string;
-  
+
   @IsDefined()
   @IsString()
   role: string;
@@ -54,16 +66,8 @@ export class EditUserDTO {
   surname: string;
 
   @IsOptional()
-  @IsEmail({}, { message: "Email düzgün formatda olmalıdır." })
-  email: string;
-
-  @IsOptional()
   @IsString()
   password: string;
-
-  @IsOptional()
-  @IsString()
-  about: string;
 
   @IsOptional()
   @IsNumber()

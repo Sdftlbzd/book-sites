@@ -7,10 +7,12 @@ import {
     JoinTable,
     ManyToMany,
     ManyToOne,
+    OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
   } from "typeorm";
 import { User } from "./User.model";
+import { UserBookPurchase } from "./Order.model";
   
   export enum EInquiryType {
     PARTNERSHIP = "PARTNERSHIP",
@@ -71,7 +73,10 @@ import { User } from "./User.model";
   authors: User[];
 
   // 🛒 Kitabı satın alan istifadəçilər (Bütün istifadəçilər üçün ManyToMany)
-  @ManyToMany(() => User, (user) => user.boughtBooks)
-  buyers: User[];
+  // @ManyToMany(() => User, (user) => user.boughtBooks)
+  // buyers: User[];
+
+  @OneToMany(() => UserBookPurchase, (purchase) => purchase.book)
+  purchases: UserBookPurchase[];
   }
   

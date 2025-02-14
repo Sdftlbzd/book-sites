@@ -14,7 +14,7 @@ AppDataSource.initialize()
 
     app.use("/api/v1", v1Routes);
 
-    //app.use(handleErrors);
+    app.use(handleErrors);
 
     app.listen(8080, () => {
       console.log("Server is running on port 8080");

@@ -7,7 +7,7 @@ export const bookRoutes = Router();
 const controller = BookController();
 
 bookRoutes.post("/create", useAuth, roleCheck([ERoleType.AUTHOR, ERoleType.ADMIN]), controller.Create);
-bookRoutes.get('/list', useAuth, roleCheck([ERoleType.ADMIN]), controller.BookList)
+bookRoutes.get('/list', useAuth, controller.BookList)
 bookRoutes.put('/edit/:id', useAuth, roleCheck([ERoleType.ADMIN, ERoleType.AUTHOR]), controller.BookEdit)
-bookRoutes.post('/delete/:id', useAuth, roleCheck([ERoleType.ADMIN, ERoleType.AUTHOR]), controller.BookDelete)
-bookRoutes.get('/:id', useAuth, roleCheck([ERoleType.ADMIN, ERoleType.AUTHOR]), controller.GetById)
+bookRoutes.delete('/delete/:id', useAuth, roleCheck([ERoleType.ADMIN, ERoleType.AUTHOR]), controller.BookDelete)
+bookRoutes.get('/:id', useAuth, controller.GetById)

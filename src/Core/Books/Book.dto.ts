@@ -52,5 +52,9 @@ import { User } from "../../DAL/models/User.model";
     @IsOptional()
     @IsNumber()
     saleCount: number;
+
+    
+    @IsOptional()
+    authors: User[];
   }
   

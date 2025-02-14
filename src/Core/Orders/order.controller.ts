@@ -84,10 +84,9 @@ const bookSaleList = async (req: Request, res: Response, next: NextFunction) => 
     const limit = Number(req.query.perpage) || 10;
     const before_page = (page - 1) * limit;
 
-    // TypeORM metodunu istifadə edərək sorğunu birbaşa DB-dən çəkirik
     const [books, total] = await Book.findAndCount({
       withDeleted: true,
-      order: { saleCount: "DESC" }, // Sort'u burada edirik
+      order: { saleCount: "DESC" }, 
       skip: before_page,
       take: limit,
     });

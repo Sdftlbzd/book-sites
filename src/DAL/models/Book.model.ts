@@ -1,82 +1,57 @@
 import {
-    BaseEntity,
-    Column,
-    CreateDateColumn,
-    DeleteDateColumn,
-    Entity,
-    JoinTable,
-    ManyToMany,
-    ManyToOne,
-    OneToMany,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn,
-  } from "typeorm";
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import { User } from "./User.model";
 import { UserBookPurchase } from "./Order.model";
-  
-  export enum EInquiryType {
-    PARTNERSHIP = "PARTNERSHIP",
-    INVESTMENT = "INVESTMENT",
-    GENERAL = "GENERAL",
-  }
-  
-  @Entity({ name: "books" })
-  export class Book extends BaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number;
-  
-    @Column({ type: "varchar", length: 100 })
-    title: string;
 
-    @Column({ type: "varchar", length: 200 })
-    description: string;
+export enum EInquiryType {
+  PARTNERSHIP = "PARTNERSHIP",
+  INVESTMENT = "INVESTMENT",
+  GENERAL = "GENERAL",
+}
 
-    @Column({ type: "int"})
-    payMount: number;
+@Entity({ name: "books" })
+export class Book extends BaseEntity {
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({ type: "varchar", length: 50 })
-    currency: string;
+  @Column({ type: "varchar", length: 100 })
+  title: string;
 
-    @Column({ type: "int"})
-    saleCount: number;
-  
-    @CreateDateColumn({ type: "datetime" })
-    created_at: Date;
-  
-    @UpdateDateColumn({ type: "datetime" })
-    updated_at: Date;
-  
-    @DeleteDateColumn({ type: "datetime" })
-    deleted_at: Date;
+  @Column({ type: "varchar", length: 200 })
+  description: string;
 
-    // @ManyToOne(()=>Author,(author)=>author.books,{cascade:true})
-    // author:Author
+  @Column({ type: "int" })
+  payMount: number;
 
-        // @ManyToMany(() => Author)
-        // @JoinTable()
-        // books: Book[]
+  @Column({ type: "varchar", length: 50 })
+  currency: string;
 
+  @Column({ type: "int" })
+  saleCount: number;
 
-  // @ManyToMany(() => Author, (author) => author.books, { cascade: true })
-  // @JoinTable()
-  // authors: Author[]; // Müəlliflərin siyahısı
+  @CreateDateColumn({ type: "datetime" })
+  created_at: Date;
 
-  /*@ManyToMany(() => User, (author) => author.books, { cascade: true })
-  @JoinTable({name:"BookAuthor"})
-  authors: User[]; // Müəlliflərin siyahısı
+  @UpdateDateColumn({ type: "datetime" })
+  updated_at: Date;
 
-  @ManyToMany(() => User, (user) => user.receivedBook, { cascade: true })
-  @JoinTable({name:"BookUser"})
-  users: User[]; */
-  // ✍️ Kitabı yaradan müəlliflər (Authors üçün ManyToMany)
+  @DeleteDateColumn({ type: "datetime" })
+  deleted_at: Date;
+
   @ManyToMany(() => User, (user) => user.createdBooks)
   authors: User[];
 
-  // 🛒 Kitabı satın alan istifadəçilər (Bütün istifadəçilər üçün ManyToMany)
-  // @ManyToMany(() => User, (user) => user.boughtBooks)
-  // buyers: User[];
-
   @OneToMany(() => UserBookPurchase, (purchase) => purchase.book)
   purchases: UserBookPurchase[];
-  }
-  
+}

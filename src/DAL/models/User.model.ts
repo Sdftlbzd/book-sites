@@ -55,10 +55,10 @@ export class User extends BaseEntity {
   })
   status: EStatusType;
 
-  @Column({ type: "text"})
+  @Column({ type: "text" })
   about: string;
 
-  @Column({ type: "int"})
+  @Column({ type: "int" })
   bookCount: number;
 
   @CreateDateColumn({ type: "datetime" })
@@ -70,24 +70,9 @@ export class User extends BaseEntity {
   @DeleteDateColumn({ type: "datetime" })
   deleted_at: Date;
 
-  // @OneToMany(() => Book, (book) => book.author, { onDelete: "CASCADE" })
-  // books: Book[]
-
- /* @ManyToMany(() => Book, (book) => book.authors)
-  books: Book[]; // Kitabların siyahısı
-
-  @ManyToMany(() => Book, (book) => book.users)
-  receivedBook: Book[]; // Kitabların siyahısı*/
-
-  // ✍️ Yaratdığı kitablar (Authors üçün ManyToMany)
   @ManyToMany(() => Book, (book) => book.authors)
-  @JoinTable({ name: "user_created_books" })  // 🔹 Müxtəlif JoinTable adı
+  @JoinTable({ name: "user_created_books" })
   createdBooks: Book[];
-
-  // 🛒 Satın aldığı kitablar (Bütün istifadəçilər üçün ManyToMany)
-  // @ManyToMany(() => Book, (book) => book.buyers)
-  // @JoinTable({ name: "user_bought_books" })  // 🔹 Müxtəlif JoinTable adı
-  // boughtBooks: Book[];
 
   @OneToMany(() => UserBookPurchase, (purchase) => purchase.user)
   purchases: UserBookPurchase[];

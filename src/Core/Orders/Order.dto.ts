@@ -19,7 +19,7 @@ export class CreateOrderDTO {
     @IsDefined()
     book: Book;
 
-  @IsDate() // Satınalma tarixi
+  @IsDate() 
   purchaseDate: Date;
 }
 

@@ -8,6 +8,8 @@ import { ERoleType, User } from "../../DAL/models/User.model";
 import { Book } from "../../DAL/models/Book.model";
 import { In } from "typeorm";
 import { AuthRequest } from "../../types";
+import { formatErrors } from "../../DAL/middlewares/error.middleware";
+
 
 const register = async (
   req: Request,
@@ -37,13 +39,7 @@ const register = async (
 
 
     if (errors.length > 0) {
-      res.status(400).json({
-        message: "Validation failed",
-        errors: errors.reduce((response: any, item: any) => {
-          response[item.property] = Object.keys(item.constraints);
-          return response;
-        }, {}),
-      });
+      res.status(400).json(formatErrors(errors));
       return;
     }
 
@@ -205,13 +201,7 @@ const userEdit = async (
     const errors = await validate(dto);
 
     if (errors.length > 0) {
-      res.status(400).json({
-        message: "Validation failed",
-        errors: errors.reduce((response: any, item: any) => {
-          response[item.property] = Object.keys(item.constraints);
-          return response;
-        }, {}),
-      });
+      res.status(400).json(formatErrors(errors));
       return;
     }
 

@@ -6,6 +6,7 @@ import { CreateBookDTO, UpdateBookDTO } from "./Book.dto";
 import { In } from "typeorm";
 import { ERoleType, User } from "../../DAL/models/User.model";
 import { AuthRequest } from "../../types";
+import { formatErrors } from "../../DAL/middlewares/error.middleware";
 
 const Create = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -36,13 +37,7 @@ const Create = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const errors = await validate(dto);
 
     if (errors.length > 0) {
-      res.status(400).json({
-        message: "Validation failed",
-        errors: errors.reduce((response: any, item: any) => {
-          response[item.property] = Object.keys(item.constraints);
-          return response;
-        }, {}),
-      });
+       res.status(400).json(formatErrors(errors));
       return;
     }
 
@@ -167,13 +162,7 @@ const BookEdit = async (
     const errors = await validate(dto);
 
     if (errors.length > 0) {
-      res.status(400).json({
-        message: "Validation failed",
-        errors: errors.reduce((response: any, item: any) => {
-          response[item.property] = Object.keys(item.constraints);
-          return response;
-        }, {}),
-      });
+      res.status(400).json(formatErrors(errors));
       return;
     }
 

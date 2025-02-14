@@ -7,7 +7,6 @@ import { CreateUserDTO, EditUserDTO } from "./User.dto";
 import { ERoleType, User } from "../../DAL/models/User.model";
 import { Book } from "../../DAL/models/Book.model";
 import { In } from "typeorm";
-import { UpdateBookDTO } from "../Books/Book.dto";
 import { AuthRequest } from "../../types";
 
 const register = async (
